@@ -1,0 +1,13 @@
+{
+  "name": "open-oldest-wayback",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.14"
+  }
+}
