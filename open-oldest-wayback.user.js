@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Open Oldest Wayback
 // @namespace    https://github.com/oooooooo/open-oldest-wayback
-// @version      0.1.1
+// @version      0.2.0
 // @description  Open the oldest available Wayback Machine snapshot for the current page.
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
@@ -157,6 +157,11 @@
     throw lastError;
   }
 
+  function handleError(error) {
+    console.error("[Open Oldest Wayback]", error);
+    showStatus(error.message, { durationMs: 4000, isError: true });
+  }
+
   document.addEventListener("keydown", (event) => {
     if (!matchesShortcut(event) || isEditableElement(event.target)) {
       return;
@@ -165,9 +170,11 @@
     event.preventDefault();
     event.stopPropagation();
 
-    openOldestArchive().catch((error) => {
-      console.error("[Open Oldest Wayback]", error);
-      showStatus(error.message, { durationMs: 4000, isError: true });
-    });
+    openOldestArchive().catch(handleError);
   });
+
+  const navEntry = performance.getEntriesByType("navigation")[0];
+  if (navEntry?.responseStatus === 404) {
+    openOldestArchive().catch(handleError);
+  }
 })();
