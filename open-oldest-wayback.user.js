@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Open Oldest Wayback
 // @namespace    https://github.com/oooooooo/open-oldest-wayback
-// @version      0.1.0
+// @version      0.1.1
 // @description  Open the oldest available Wayback Machine snapshot for the current page.
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
@@ -124,21 +124,37 @@
 
   async function openOldestArchive() {
     const pageUrl = window.location.href;
+    const MAX_RETRIES = 3;
+
     showStatus("Fetching the oldest snapshot...");
 
-    const cdxResponse = await requestJson(buildCdxUrl(pageUrl));
+    let lastError;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const cdxResponse = await requestJson(buildCdxUrl(pageUrl));
 
-    if (!Array.isArray(cdxResponse) || cdxResponse.length < 2) {
-      showStatus("No Internet Archive snapshot was found for this page.", {
-        durationMs: 3200,
-        isError: true,
-      });
-      return;
+        if (!Array.isArray(cdxResponse) || cdxResponse.length < 2) {
+          showStatus("No Internet Archive snapshot was found for this page.", {
+            durationMs: 3200,
+            isError: true,
+          });
+          return;
+        }
+
+        const [timestamp, original] = cdxResponse[1];
+        showStatus("Opening the oldest snapshot...", { durationMs: 1600 });
+        window.location.assign(`${WAYBACK_URL}/${timestamp}/${original}`);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt < MAX_RETRIES) {
+          showStatus(`Retrying... (${attempt}/${MAX_RETRIES})`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
     }
 
-    const [timestamp, original] = cdxResponse[1];
-    showStatus("Opening the oldest snapshot...", { durationMs: 1600 });
-    window.location.assign(`${WAYBACK_URL}/${timestamp}/${original}`);
+    throw lastError;
   }
 
   document.addEventListener("keydown", (event) => {
